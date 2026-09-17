@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import os
 import random
 import requests
@@ -80,6 +81,18 @@ def submit_to_google_form(field_values: dict) -> bool:
         return False
 
 
+def scroll_to_top():
+    """Injects a tiny script that scrolls the page back to the top."""
+    components.html(
+        """
+        <script>
+            window.parent.document.querySelector('section.main').scrollTo(0, 0);
+        </script>
+        """,
+        height=0,
+    )
+
+
 # -----------------------------
 # SESSION STATE
 # -----------------------------
@@ -92,6 +105,9 @@ if "responses" not in st.session_state:
 
 if "participant_name" not in st.session_state:
     st.session_state.participant_name = ""
+
+if "scroll_to_top" not in st.session_state:
+    st.session_state.scroll_to_top = False
 
 if "orderings" not in st.session_state:
     # Precompute a randomized A/B/C -> type mapping for each instance so that
@@ -139,6 +155,10 @@ if not st.session_state.participant_name:
 # -----------------------------
 
 instance = st.session_state.page
+
+if st.session_state.scroll_to_top:
+    scroll_to_top()
+    st.session_state.scroll_to_top = False
 
 st.title(f"Instance {instance} of {NUM_INSTANCES}")
 
@@ -194,6 +214,7 @@ labels = [f"Video {chr(65+i)}" for i in range(len(order))]
 choice = st.radio(
     "Which video has the most natural gesture timing and placement?",
     labels,
+    index=None,
     key=f"choice_{instance}"
 )
 
@@ -206,6 +227,7 @@ rating = st.radio(
         "4 — Natural",
         "5 — Very natural"
     ],
+    index=None,
     key=f"rating_{instance}"
 )
 
@@ -231,41 +253,48 @@ if instance < NUM_INSTANCES:
 
     if st.button("Next", type="primary"):
 
-        record_response()
-        st.session_state.page += 1
-        st.rerun()
+        if choice is None or rating is None:
+            st.warning("Please answer both questions before continuing.")
+        else:
+            record_response()
+            st.session_state.page += 1
+            st.session_state.scroll_to_top = True
+            st.rerun()
 
 else:
 
     if st.button("Submit Evaluation", type="primary"):
 
-        record_response()
-
-        # -----------------------------
-        # Build the field values for this participant
-        # -----------------------------
-
-        field_values = {"participant_name": st.session_state.participant_name}
-
-        for inst in range(1, NUM_INSTANCES + 1):
-            response = st.session_state.responses[inst]
-            order_for_inst = response["order"]
-
-            field_values[f"instance{inst}_video_A"] = order_for_inst[0]
-            field_values[f"instance{inst}_video_B"] = order_for_inst[1]
-            field_values[f"instance{inst}_video_C"] = order_for_inst[2]
-            field_values[f"instance{inst}_choice"] = response["choice_type"]
-            field_values[f"instance{inst}_rating"] = response["rating"]
-
-        # Submit to Google Form (backed by a Google Sheet)
-        success = submit_to_google_form(field_values)
-
-        if success:
-            st.success(
-                "Thank you! Your evaluation has been recorded."
-            )
+        if choice is None or rating is None:
+            st.warning("Please answer both questions before submitting.")
         else:
-            st.error(
-                "Something went wrong submitting your evaluation. "
-                "Please check your internet connection and try again."
-            )
+            record_response()
+
+            # -----------------------------
+            # Build the field values for this participant
+            # -----------------------------
+
+            field_values = {"participant_name": st.session_state.participant_name}
+
+            for inst in range(1, NUM_INSTANCES + 1):
+                response = st.session_state.responses[inst]
+                order_for_inst = response["order"]
+
+                field_values[f"instance{inst}_video_A"] = order_for_inst[0]
+                field_values[f"instance{inst}_video_B"] = order_for_inst[1]
+                field_values[f"instance{inst}_video_C"] = order_for_inst[2]
+                field_values[f"instance{inst}_choice"] = response["choice_type"]
+                field_values[f"instance{inst}_rating"] = response["rating"]
+
+            # Submit to Google Form (backed by a Google Sheet)
+            success = submit_to_google_form(field_values)
+
+            if success:
+                st.success(
+                    "Thank you! Your evaluation has been recorded."
+                )
+            else:
+                st.error(
+                    "Something went wrong submitting your evaluation. "
+                    "Please check your internet connection and try again."
+                )
