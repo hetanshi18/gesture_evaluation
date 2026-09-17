@@ -87,15 +87,16 @@ def scroll_to_top():
         <script>
         setTimeout(() => {
             const main = window.parent.document.querySelector(
-                '[data-testid="stAppViewContainer"]'
+                '[data-testid="stMain"]'
             );
 
             if (main) {
-                main.scrollTop = 0;
+                main.scrollTo({
+                    top: 0,
+                    behavior: 'instant'
+                });
             }
-
-            window.parent.scrollTo(0, 0);
-        }, 300);
+        }, 100);
         </script>
         """,
         height=0,
