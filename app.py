@@ -82,11 +82,20 @@ def submit_to_google_form(field_values: dict) -> bool:
 
 
 def scroll_to_top():
-    """Injects a tiny script that scrolls the page back to the top."""
     components.html(
         """
         <script>
-            window.parent.document.querySelector('section.main').scrollTo(0, 0);
+        setTimeout(() => {
+            const main = window.parent.document.querySelector(
+                '[data-testid="stAppViewContainer"]'
+            );
+
+            if (main) {
+                main.scrollTop = 0;
+            }
+
+            window.parent.scrollTo(0, 0);
+        }, 300);
         </script>
         """,
         height=0,
