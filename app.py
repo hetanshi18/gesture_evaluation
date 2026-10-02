@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import os
-import random
 import requests
 
 # -----------------------------
@@ -14,10 +13,47 @@ st.set_page_config(
     layout="wide"
 )
 
-NUM_INSTANCES = 5
+NUM_VIDEOS = 12
 
-# Folder names for each video type - videos inside are named instance_1.mp4 ... instance_5.mp4
-VIDEO_TYPES = ["combined", "pitch_accent", "vowel_onset"]
+# 12 videos:
+# Instances 1-4 × 3 video types
+VIDEO_PATHS = [
+    "videos/combined/instance_9.mp4",
+    "videos/random/instance_2.mp4",
+    "videos/combined/instance_11.mp4",
+    "videos/random/instance_6.mp4",
+    "videos/random/instance_3.mp4",
+    "videos/combined/instance_4.mp4",
+    "videos/random/instance_7.mp4",
+    "videos/combined/instance_8.mp4",
+    "videos/combined/instance_6.mp4",
+    "videos/random/instance_1.mp4",
+    "videos/random/instance_4.mp4",
+    "videos/combined/instance_10.mp4",
+    "videos/random/instance_8.mp4",
+    "videos/combined/instance_5.mp4",
+    "videos/combined/instance_7.mp4",
+    "videos/random/instance_5.mp4",
+]
+
+VIDEO_TYPES = [
+    "original",  # Video 1
+    "random",    # Video 2
+    "original",  # Video 3
+    "random",    # Video 4
+    "random",    # Video 5
+    "original",  # Video 6
+    "random",    # Video 7
+    "original",  # Video 8
+    "original",  # Video 9
+    "random",    # Video 10
+    "random",    # Video 11
+    "original",  # Video 12
+    "random",    
+    "original",
+    "original",
+    "random",
+]
 
 # -----------------------------
 # GOOGLE FORM CONFIG
@@ -25,67 +61,103 @@ VIDEO_TYPES = ["combined", "pitch_accent", "vowel_onset"]
 
 GOOGLE_FORM_ACTION_URL = (
     "https://docs.google.com/forms/d/e/"
-    "1FAIpQLSf22dSrCJQCWT60earT-edACr4XhrjsospZMZ1ojWV3f7tP0Q/formResponse"
+    "1FAIpQLSevnERHGWWJ3WwqU8LfOpRGYHxOsD3-swiIZXkMKXho35B2wA/"
+    "formResponse"
 )
 
-# Maps our internal field names to the Google Form's entry IDs
+# IMPORTANT:
+# Replace these entry IDs with the entry IDs from your NEW Google Form.
+#
+# You need:
+# - participant name
+# - naturalness for videos 1-12
+# - synchrony for videos 1-12
+# - comments for videos 1-12
+
 ENTRY_MAP = {
-    "participant_name": "entry.1118831540",
+    "participant_name": "entry.1060400637",
 
-    "instance1_video_A": "entry.1827752055",
-    "instance1_video_B": "entry.889265544",
-    "instance1_video_C": "entry.1039151512",
-    "instance1_choice": "entry.1554871476",
-    "instance1_rating": "entry.262817648",
+    "video1_naturalness": "entry.1906870714",
+    "video1_synchrony": "entry.597971657",
+    "video1_comment": "entry.255366240",
 
-    "instance2_video_A": "entry.951390741",
-    "instance2_video_B": "entry.752887444",
-    "instance2_video_C": "entry.1325547455",
-    "instance2_choice": "entry.545058623",
-    "instance2_rating": "entry.1121958934",
+    "video2_naturalness": "entry.23650009",
+    "video2_synchrony": "entry.433161484",
+    "video2_comment": "entry.346418573",
 
-    "instance3_video_A": "entry.171459414",
-    "instance3_video_B": "entry.2023343460",
-    "instance3_video_C": "entry.1040537878",
-    "instance3_choice": "entry.1495693522",
-    "instance3_rating": "entry.1072339683",
+    "video3_naturalness": "entry.821506150",
+    "video3_synchrony": "entry.663324970",
+    "video3_comment": "entry.831704361",
 
-    "instance4_video_A": "entry.386911549",
-    "instance4_video_B": "entry.454990217",
-    "instance4_video_C": "entry.1541273725",
-    "instance4_choice": "entry.954021614",
-    "instance4_rating": "entry.1970346573",
+    "video4_naturalness": "entry.962931535",
+    "video4_synchrony": "entry.479476259",
+    "video4_comment": "entry.1283587253",
 
-    "instance5_video_A": "entry.162603200",
-    "instance5_video_B": "entry.829034950",
-    "instance5_video_C": "entry.317139658",
-    "instance5_choice": "entry.475643716",
-    "instance5_rating": "entry.1720762791",
+    "video5_naturalness": "entry.1994725445",
+    "video5_synchrony": "entry.944911321",
+    "video5_comment": "entry.796282885",
+
+    "video6_naturalness": "entry.430771922",
+    "video6_synchrony": "entry.46908906",
+    "video6_comment": "entry.460488255",
+
+    "video7_naturalness": "entry.797198952",
+    "video7_synchrony": "entry.1491102938",
+    "video7_comment": "entry.469709548",
+
+    "video8_naturalness": "entry.1857287357",
+    "video8_synchrony": "entry.32121396",
+    "video8_comment": "entry.2031508538",
+
+    "video9_naturalness": "entry.1425068461",
+    "video9_synchrony": "entry.1696387806",
+    "video9_comment": "entry.897374875",
+
+    "video10_naturalness": "entry.1481659284",
+    "video10_synchrony": "entry.268447108",
+    "video10_comment": "entry.1195457340",
+
+    "video11_naturalness": "entry.519884985",
+    "video11_synchrony": "entry.550518812",
+    "video11_comment": "entry.406724704",
+
+    "video12_naturalness": "entry.647618947",
+    "video12_synchrony": "entry.2073875244",
+    "video12_comment": "entry.1264999937",
 }
 
 
 def submit_to_google_form(field_values: dict) -> bool:
-    """
-    Sends field_values (internal field name -> value) to the Google Form.
-    Returns True if the request appears to have succeeded.
-    """
+
     form_payload = {
         ENTRY_MAP[field]: value
         for field, value in field_values.items()
     }
 
     try:
-        response = requests.post(GOOGLE_FORM_ACTION_URL, data=form_payload, timeout=10)
+        response = requests.post(
+            GOOGLE_FORM_ACTION_URL,
+            data=form_payload,
+            timeout=10
+        )
+
         return response.status_code == 200
+
     except requests.RequestException:
         return False
 
 
+# -----------------------------
+# SCROLL TO TOP
+# -----------------------------
+
 def scroll_to_top():
+
     components.html(
         """
         <script>
         setTimeout(() => {
+
             const main = window.parent.document.querySelector(
                 '[data-testid="stMain"]'
             );
@@ -96,6 +168,7 @@ def scroll_to_top():
                     behavior: 'instant'
                 });
             }
+
         }, 100);
         </script>
         """,
@@ -108,25 +181,16 @@ def scroll_to_top():
 # -----------------------------
 
 if "page" not in st.session_state:
-    st.session_state.page = 1
-
-if "responses" not in st.session_state:
-    st.session_state.responses = {}
+    st.session_state.page = 0
 
 if "participant_name" not in st.session_state:
     st.session_state.participant_name = ""
 
+if "responses" not in st.session_state:
+    st.session_state.responses = {}
+
 if "scroll_to_top" not in st.session_state:
     st.session_state.scroll_to_top = False
-
-if "orderings" not in st.session_state:
-    # Precompute a randomized A/B/C -> type mapping for each instance so that
-    # order is shuffled per instance and doesn't bias the participant.
-    st.session_state.orderings = {}
-    for inst in range(1, NUM_INSTANCES + 1):
-        shuffled = VIDEO_TYPES.copy()
-        random.shuffle(shuffled)
-        st.session_state.orderings[inst] = shuffled
 
 
 # -----------------------------
@@ -138,9 +202,9 @@ if not st.session_state.participant_name:
     st.title("Gesture Naturalness Evaluation")
 
     st.write(
-        "You will be shown five sets of three videos. "
-        "For each set, please watch all three videos and select "
-        "the video in which the gestures appear most natural."
+        "You will be shown 12 videos, one at a time. "
+        "For each video, please rate the naturalness and synchrony "
+        "of the gestures and optionally provide a comment."
     )
 
     participant_name = st.text_input(
@@ -148,162 +212,233 @@ if not st.session_state.participant_name:
         placeholder="Enter your name"
     )
 
-    if st.button("Start Evaluation"):
+    if st.button("Start Evaluation", type="primary"):
 
         if participant_name.strip() == "":
             st.warning("Please enter your name.")
 
         else:
-            st.session_state.participant_name = participant_name
+
+            st.session_state.participant_name = participant_name.strip()
+
             st.rerun()
 
     st.stop()
 
 
 # -----------------------------
-# CURRENT INSTANCE
+# CURRENT VIDEO
 # -----------------------------
 
-instance = st.session_state.page
+video_index = st.session_state.page
 
+# Scroll to top after moving to a new page
 if st.session_state.scroll_to_top:
+
     scroll_to_top()
+
     st.session_state.scroll_to_top = False
 
-st.title(f"Instance {instance} of {NUM_INSTANCES}")
+
+# -----------------------------
+# VIDEO PAGE
+# -----------------------------
+
+st.title(
+    f"Video {video_index + 1} of {NUM_VIDEOS}"
+)
 
 st.write(
-    "Watch all three videos before making your choice."
+    "Watch the video carefully before providing your ratings."
 )
 
 st.divider()
 
 
-# -----------------------------
-# VIDEO PATHS
-# -----------------------------
-
-# Randomized mapping of label -> video type for this instance
-order = st.session_state.orderings[instance]
-
-video_paths = [
-    f"videos/{video_type}/instance_{instance}.mp4"
-    for video_type in order
-]
+video_path = VIDEO_PATHS[video_index]
 
 
 # -----------------------------
-# DISPLAY VIDEOS
+# DISPLAY VIDEO
 # -----------------------------
 
-cols = st.columns(3)
+if os.path.exists(video_path):
 
-for i, video_path in enumerate(video_paths):
+    col1, col2, col3 = st.columns([1, 2, 1])
 
-    with cols[i]:
-
-        st.subheader(f"Video {chr(65+i)}")
-
-        if os.path.exists(video_path):
-            st.video(video_path)
-        else:
-            st.error(f"Video not found: {video_path}")
-
-
-st.divider()
-
-
-# -----------------------------
-# EVALUATION
-# -----------------------------
-
-st.subheader("Your evaluation")
-
-labels = [f"Video {chr(65+i)}" for i in range(len(order))]
-
-choice = st.radio(
-    "Which video has the most natural gesture timing and placement?",
-    labels,
-    index=None,
-    key=f"choice_{instance}"
-)
-
-rating = st.radio(
-    "How natural did the gestures appear overall?",
-    [
-        "1 — Very unnatural",
-        "2 — Somewhat unnatural",
-        "3 — Neutral",
-        "4 — Natural",
-        "5 — Very natural"
-    ],
-    index=None,
-    key=f"rating_{instance}"
-)
-
-
-# -----------------------------
-# NEXT / SUBMIT
-# -----------------------------
-
-def record_response():
-    # Map the chosen label (e.g. "Video A") back to the underlying video type
-    chosen_index = labels.index(choice)
-    chosen_type = order[chosen_index]
-
-    st.session_state.responses[instance] = {
-        "choice_label": choice,
-        "choice_type": chosen_type,
-        "order": order,
-        "rating": rating
-    }
-
-
-if instance < NUM_INSTANCES:
-
-    if st.button("Next", type="primary"):
-
-        if choice is None or rating is None:
-            st.warning("Please answer both questions before continuing.")
-        else:
-            record_response()
-            st.session_state.page += 1
-            st.session_state.scroll_to_top = True
-            st.rerun()
+    with col2:
+        st.video(video_path)
 
 else:
 
-    if st.button("Submit Evaluation", type="primary"):
+    st.error(
+        f"Video not found: {video_path}"
+    )
 
-        if choice is None or rating is None:
-            st.warning("Please answer both questions before submitting.")
+
+st.divider()
+
+
+# -----------------------------
+# LIKERT SCALE
+# -----------------------------
+
+st.subheader("Your Evaluation")
+
+
+NATURALNESS_OPTIONS = [
+    "1 — Very unnatural",
+    "2 — Somewhat unnatural",
+    "3 — Neutral",
+    "4 — Natural",
+    "5 — Very natural"
+]
+
+SYNCHRONY_OPTIONS = [
+    "1 — Very poorly synchronized",
+    "2 — Poorly synchronized",
+    "3 — Neutral",
+    "4 — Well synchronized",
+    "5 — Very well synchronized"
+]
+
+
+naturalness = st.radio(
+    "Naturalness",
+    NATURALNESS_OPTIONS,
+    index=None,
+    key=f"naturalness_{video_index}"
+)
+
+
+synchrony = st.radio(
+    "Synchrony",
+    SYNCHRONY_OPTIONS,
+    index=None,
+    key=f"synchrony_{video_index}"
+)
+
+
+comment = st.text_area(
+    "Comments (optional)",
+    placeholder="Enter any comments about the gestures...",
+    key=f"comment_{video_index}"
+)
+
+
+# -----------------------------
+# RECORD RESPONSE
+# -----------------------------
+
+def record_response():
+
+    st.session_state.responses[video_index] = {
+
+        "video_number": video_index + 1,
+
+        "video_path": video_path,
+
+        "video_type": VIDEO_TYPES[video_index],
+
+        "naturalness": naturalness,
+
+        "synchrony": synchrony,
+
+        "comment": comment
+
+    }
+
+
+# -----------------------------
+# NAVIGATION
+# -----------------------------
+
+if video_index < NUM_VIDEOS - 1:
+
+    if st.button(
+        "Next",
+        type="primary"
+    ):
+
+        if naturalness is None or synchrony is None:
+
+            st.warning(
+                "Please provide ratings for both Naturalness and Synchrony."
+            )
+
         else:
+
+            record_response()
+
+            st.session_state.page += 1
+
+            st.session_state.scroll_to_top = True
+
+            st.rerun()
+
+
+else:
+
+    if st.button(
+        "Submit Evaluation",
+        type="primary"
+    ):
+
+        if naturalness is None or synchrony is None:
+
+            st.warning(
+                "Please provide ratings for both Naturalness and Synchrony."
+            )
+
+        else:
+
             record_response()
 
             # -----------------------------
-            # Build the field values for this participant
+            # BUILD GOOGLE FORM PAYLOAD
             # -----------------------------
 
-            field_values = {"participant_name": st.session_state.participant_name}
+            field_values = {
+                "participant_name":
+                    st.session_state.participant_name
+            }
 
-            for inst in range(1, NUM_INSTANCES + 1):
-                response = st.session_state.responses[inst]
-                order_for_inst = response["order"]
+            for i in range(NUM_VIDEOS):
 
-                field_values[f"instance{inst}_video_A"] = order_for_inst[0]
-                field_values[f"instance{inst}_video_B"] = order_for_inst[1]
-                field_values[f"instance{inst}_video_C"] = order_for_inst[2]
-                field_values[f"instance{inst}_choice"] = response["choice_type"]
-                field_values[f"instance{inst}_rating"] = response["rating"]
+                response = st.session_state.responses[i]
 
-            # Submit to Google Form (backed by a Google Sheet)
-            success = submit_to_google_form(field_values)
+                field_values[
+                    f"video{i + 1}_naturalness"
+                ] = response["naturalness"]
+
+                field_values[
+                    f"video{i + 1}_synchrony"
+                ] = response["synchrony"]
+
+                field_values[
+                    f"video{i + 1}_comment"
+                ] = response["comment"]
+
+
+            # -----------------------------
+            # SUBMIT
+            # -----------------------------
+
+            success = submit_to_google_form(
+                field_values
+            )
+
 
             if success:
+
                 st.success(
                     "Thank you! Your evaluation has been recorded."
                 )
+
+                st.balloons()
+
             else:
+
                 st.error(
                     "Something went wrong submitting your evaluation. "
                     "Please check your internet connection and try again."
