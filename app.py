@@ -18,16 +18,12 @@ NUM_VIDEOS = 12
 # 12 videos:
 # Instances 1-4 × 3 video types
 VIDEO_PATHS = [
-    "videos/combined/instance_9.mp4",
     "videos/random/instance_2.mp4",
     "videos/combined/instance_11.mp4",
-    "videos/random/instance_6.mp4",
     "videos/random/instance_3.mp4",
-    "videos/combined/instance_4.mp4",
     "videos/random/instance_7.mp4",
     "videos/combined/instance_8.mp4",
     "videos/combined/instance_6.mp4",
-    "videos/random/instance_1.mp4",
     "videos/random/instance_4.mp4",
     "videos/combined/instance_10.mp4",
     "videos/random/instance_8.mp4",
@@ -37,22 +33,18 @@ VIDEO_PATHS = [
 ]
 
 VIDEO_TYPES = [
-    "original",  # Video 1
-    "random",    # Video 2
-    "original",  # Video 3
+    "random",    # Video 1
+    "original",  # Video 2   
+    "random",    # Video 3
     "random",    # Video 4
-    "random",    # Video 5
+    "original",  # Video 5
     "original",  # Video 6
     "random",    # Video 7
     "original",  # Video 8
-    "original",  # Video 9
-    "random",    # Video 10
-    "random",    # Video 11
-    "original",  # Video 12
-    "random",    
-    "original",
-    "original",
-    "random",
+    "random",    # Video 9
+    "original",  # Video 10
+    "original",  # Video 11
+    "random",    # Video 12
 ]
 
 # -----------------------------
